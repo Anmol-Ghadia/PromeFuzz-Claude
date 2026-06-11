@@ -1,8 +1,8 @@
 """
-A wrapper for the OpenAI API and Ollama API
+A wrapper for the Anthropic API and Ollama API
 """
 
-from openai import OpenAI
+from anthropic import Anthropic
 from ollama import Client as Ollama
 from loguru import logger
 from enum import Enum
@@ -357,7 +357,7 @@ class LLMClient(ABC):
 
 class ReasoningLLMClient(LLMClient):
     """
-    The reasoning LLM client, like OpenAI o1 and DeepSeek R1
+    The reasoning LLM client, like Anthropic Claude 3.7 Sonnet
     """
 
     @abstractmethod
@@ -392,39 +392,37 @@ class ReasoningLLMClient(LLMClient):
 
 class OpenAIClient(LLMClient):
     """
-    OpenAI compatible LLM client
+    Anthropic compatible LLM client
     """
 
     def __init__(
         self,
-        base_url: str = "https://api.openai.com/v1/",
+        base_url: str = "https://api.anthropic.com/v1/",
         api_key: str = "",
-        model: str = "gpt-4o",
+        model: str = "claude-3-5-sonnet-20241022",
         temperature: float = 0.9,
         max_tokens: int = -1,
         timeout: int = 80,
         retry_times: int = 3,
     ):
         """
-        Initialize the OpenAI compatible LLM client
+        Initialize the Anthropic compatible LLM client
 
-        :param base_url: Base URL of the LLM API, default is the OpenAI API
-        :param api_key: API key for the LLM API, default is the OPENAI_API_KEY environment variable
-        :param model: Model to use, default is gpt-4o
+        :param base_url: Base URL of the LLM API, default is the Anthropic API
+        :param api_key: API key for the LLM API, default is the ANTHROPIC_API_KEY environment variable
+        :param model: Model to use, default is claude-3-5-sonnet-20241022
         :param temperature: Temperature of the LLM, default is 0.9
         :param max_tokens: Maximum tokens of the LLM, default is -1(unlimited)
         :param timeout: Timeout for API requests, default is 80 seconds
         :param retry_times: Number of times to retry the API requests, default is 3
         """
         try:
-            self.client = OpenAI(
+            self.client = Anthropic(
                 api_key=api_key,
-                base_url=base_url,
                 timeout=timeout,
-                max_retries=0,
             )
         except Exception as e:
-            raise ValueError("OpenAI API initialization failed") from e
+            raise ValueError("Anthropic API initialization failed") from e
         self.temperature = temperature
         self.model = model
         self.max_tokens = max_tokens
@@ -445,27 +443,24 @@ class OpenAIClient(LLMClient):
         :return: Response text, or tuple of response text and tokens, or None if the query failed
         """
         try:
-            # Though OpenAI deprecated the `max_tokens` parameter,
-            # other LLM APIs like DeepSeek still use it.
-            # Use max_completion_tokens for newer OpenAI API, fallback to max_tokens for compatibility
+            # Prepare API parameters for Anthropic
             api_params = {
                 "model": self.model,
                 "messages": messages,
                 "temperature": self.temperature,
             }
 
+            # Set max_tokens if specified
             if self.max_tokens != -1:
-                # Try max_completion_tokens first (newer OpenAI API)
-                if "gpt" in self.model or "o1" in self.model:
-                    api_params["max_completion_tokens"] = self.max_tokens
-                else:
-                    # Fallback to max_tokens for other APIs
-                    api_params["max_tokens"] = self.max_tokens
+                api_params["max_tokens"] = self.max_tokens
+            else:
+                # Anthropic requires max_tokens, so set a high default
+                api_params["max_tokens"] = 4096
 
-            completion = self.client.chat.completions.create(**api_params)
-            response = completion.choices[0].message.content
+            completion = self.client.messages.create(**api_params)
+            response = completion.content[0].text
         except Exception as e:
-            logger.error(f"OpenAI API exception: {e}")
+            logger.error(f"Anthropic API exception: {e}")
             return None
 
         if not return_tokens:
@@ -473,8 +468,8 @@ class OpenAIClient(LLMClient):
         else:
             return (
                 response,
-                completion.usage.prompt_tokens,
-                completion.usage.completion_tokens,
+                completion.usage.input_tokens,
+                completion.usage.output_tokens,
             )
 
 
@@ -554,39 +549,37 @@ class OllamaClient(LLMClient):
 
 class OpenAIReasoningClient(ReasoningLLMClient):
     """
-    OpenAI compatible reasoning LLM client
+    Anthropic compatible reasoning LLM client
     """
 
     def __init__(
         self,
-        base_url: str = "https://api.openai.com/v1/",
+        base_url: str = "https://api.anthropic.com/v1/",
         api_key: str = "",
-        model: str = "o1",
+        model: str = "claude-3-7-sonnet-20250219",
         temperature: float = 0.9,
         max_tokens: int = -1,
         timeout: int = 600,
         retry_times: int = 3,
     ):
         """
-        Initialize the OpenAI compatible LLM client
+        Initialize the Anthropic compatible LLM client
 
-        :param base_url: Base URL of the LLM API, default is the OpenAI API
-        :param api_key: API key for the LLM API, default is the OPENAI_API_KEY environment variable
-        :param model: Model to use, default is o1
+        :param base_url: Base URL of the LLM API, default is the Anthropic API
+        :param api_key: API key for the LLM API, default is the ANTHROPIC_API_KEY environment variable
+        :param model: Model to use, default is claude-3-7-sonnet-20250219
         :param temperature: Temperature of the LLM, default is 0.9
         :param max_tokens: Maximum tokens of the LLM, default is -1(unlimited)
         :param timeout: Timeout for API requests, default is 600 seconds
         :param retry_times: Number of times to retry the API requests, default is 3
         """
         try:
-            self.client = OpenAI(
+            self.client = Anthropic(
                 api_key=api_key,
-                base_url=base_url,
                 timeout=timeout,
-                max_retries=0,
             )
         except Exception as e:
-            raise ValueError("OpenAI API initialization failed") from e
+            raise ValueError("Anthropic API initialization failed") from e
         self.temperature = temperature
         self.model = model
         self.max_tokens = max_tokens
@@ -609,61 +602,56 @@ class OpenAIReasoningClient(ReasoningLLMClient):
         or None if the query failed
         """
         try:
-            # Though OpenAI deprecated the `max_tokens` parameter,
-            # other LLM APIs like DeepSeek still use it.
-            # Use max_completion_tokens for newer OpenAI API, fallback to max_tokens for compatibility
+            # Prepare API parameters for Anthropic
             api_params = {
                 "model": self.model,
                 "messages": messages,
                 "temperature": self.temperature,
             }
 
+            # Set max_tokens if specified
             if self.max_tokens != -1:
-                # Try max_completion_tokens first (newer OpenAI API)
-                if "gpt" in self.model or "o1" in self.model:
-                    api_params["max_completion_tokens"] = self.max_tokens
-                else:
-                    # Fallback to max_tokens for other APIs
-                    api_params["max_tokens"] = self.max_tokens
+                api_params["max_tokens"] = self.max_tokens
+            else:
+                # Anthropic requires max_tokens, so set a high default
+                api_params["max_tokens"] = 16000
 
-            completion = self.client.chat.completions.create(**api_params)
-            response = completion.choices[0].message.content
+            completion = self.client.messages.create(**api_params)
+            response = completion.content[0].text
 
             # parse the reasoning content
-            if hasattr(completion.choices[0].message, "reasoning_content"):
-                # DeepSeek API uses the reasoning_content field
-                reasoning = completion.choices[0].message.reasoning_content
-            elif "</think>" in response:
-                # Local reasoning model uses <think> </think> tags
-                reasoning = response.split("</think>")[0].removeprefix("<think>")
-                response = response.split("</think>")[1]
-            elif "Reasoned for a couple of seconds" in response:
-                # OpenAI API uses the "Reasoning" and "Reasoned for a couple of seconds" tags
-                reasoning, response = response.split("Reasoned for a couple of seconds")
-            else:
+            # Anthropic extended thinking returns reasoning in content blocks
+            reasoning = ""
+            for block in completion.content:
+                if hasattr(block, "type") and block.type == "thinking":
+                    reasoning = block.thinking
+                    break
+                elif hasattr(block, "thinking"):
+                    reasoning = block.thinking
+                    break
+
+            # If no explicit reasoning block, check for <thinking> tags in response
+            if not reasoning and "<thinking>" in response:
+                reasoning = response.split("</thinking>")[0].removeprefix("<thinking>")
+                response = response.split("</thinking>")[1] if "</thinking>" in response else response
+            elif not reasoning:
                 logger.warning(
                     "No reasoning content found in the reasoning LLM response:\n"
                     + response
                 )
-                reasoning = ""
+
         except Exception as e:
-            logger.error(f"OpenAI API exception: {e}")
+            logger.error(f"Anthropic API exception: {e}")
             return None
 
         if not return_tokens:
             return response, reasoning
         else:
-            try:
-                reasoning_tokens = (
-                    completion.usage.completion_tokens_details.reasoning_tokens
-                )
-            except:
-                reasoning_tokens = 0
             return (
                 response,
                 reasoning,
-                completion.usage.prompt_tokens,
-                completion.usage.completion_tokens + reasoning_tokens,
+                completion.usage.input_tokens,
+                completion.usage.output_tokens,
             )
 
 
