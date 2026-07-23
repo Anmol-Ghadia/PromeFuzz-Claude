@@ -14,9 +14,11 @@ import atexit
 import sys
 from typing import Union
 from dataclasses import dataclass
+import time
 
 from src import vars as global_vars
 
+SLEEP_TIME = 10
 
 class LLM_TYPES(Enum):
     OLLAMA = "ollama"
@@ -377,6 +379,8 @@ class ReasoningLLMClient(LLMClient):
         or a tuple of response text, reasoning, and tokens;
         or None if the query failed
         """
+        logger.info("==> slept to avoid API rate limits")
+        time.sleep(SLEEP_TIME)
         ...
 
     def query_once(self, user_prompt: str, system_prompt: str = "") -> tuple[str, str]:
@@ -444,6 +448,7 @@ class OpenAIClient(LLMClient):
         :param return_tokens: Whether to return the tokens of the query and response
         :return: Response text, or tuple of response text and tokens, or None if the query failed
         """
+        time.sleep(SLEEP_TIME)
         try:
             # Though OpenAI deprecated the `max_tokens` parameter,
             # other LLM APIs like DeepSeek still use it.
@@ -521,6 +526,7 @@ class OllamaClient(LLMClient):
         :param return_tokens: Whether to return the tokens of the query and response
         :return: Response text, or tuple of response text and tokens, or None if the query failed
         """
+        time.sleep(SLEEP_TIME)
         # query the Ollama API
         try:
             response = self.client.chat(
@@ -608,6 +614,7 @@ class OpenAIReasoningClient(ReasoningLLMClient):
         or a tuple of response text, reasoning, and tokens;
         or None if the query failed
         """
+        time.sleep(SLEEP_TIME)
         try:
             # Though OpenAI deprecated the `max_tokens` parameter,
             # other LLM APIs like DeepSeek still use it.
