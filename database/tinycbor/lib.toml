@@ -1,0 +1,30 @@
+[tinycbor]
+language = "c"
+compile_commands_path = "database/tinycbor/latest/build_asan/compile_commands.json"
+header_paths = [
+	"database/tinycbor/latest/code/src/cbor.h",
+	"database/tinycbor/latest/code/src/cborjson.h"
+]
+document_paths = [
+	"https://intel.github.io/tinycbor/current/a00045.html",
+	"https://intel.github.io/tinycbor/current/a00046.html",
+	"https://intel.github.io/tinycbor/current/a00047.html",
+	"https://intel.github.io/tinycbor/current/a00048.html",
+	"https://intel.github.io/tinycbor/current/a00049.html",
+	"database/tinycbor/latest/code/README"
+]
+document_has_api_usage = false
+output_path = "database/tinycbor/latest/out"
+driver_build_args = [
+	"database/tinycbor/latest/bin_asan/lib/libtinycbor.a",
+	"-Idatabase/tinycbor/latest/bin_asan/include/tinycbor",
+	"-Idatabase/tinycbor/latest/code",
+	"-Idatabase/tinycbor/latest/code/src"
+]
+consumer_case_paths = [
+	"database/tinycbor/latest/code/tests",
+	"database/tinycbor/latest/code/examples",
+]
+driver_headers = [
+	"database/tinycbor/latest/code/src/cbor.h"
+]
