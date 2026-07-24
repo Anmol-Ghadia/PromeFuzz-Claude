@@ -25,3 +25,7 @@ mv code latest
 cp ./build.sh ./lib.toml latest
 
 echo "Repository successfully cloned and copied to '$TARGET_DIR' and latest."
+
+echo "fetching dependencies"
+# may need to modif if running on host with without apt
+apt install libjpeg-dev libjbig-dev liblzma-dev libzstd-dev
