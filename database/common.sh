@@ -10,11 +10,13 @@ elif [[ $MODE == "normal" ]]; then
     export CC=clang
     export CXX=clang++
 elif [[ $MODE == "asan" ]]; then
-    export CC="clang -fsanitize=address,fuzzer-no-link -g "
-    export CXX="clang++ -fsanitize=address,fuzzer-no-link -g "
-    export CFLAGS="-g -O0"
-    export CXXFLAGS="-g -O0"
-    export CCFLAGS="-g -O0"
+    export CC=afl-clang-lto
+    export CXX=afl-clang-lto++
+    export CFLAGS="-g -O1"
+    export CXXFLAGS="-g -O1"
+    export RANLIB=llvm-ranlib
+    export AR=llvm-ar
+    export AFL_USE_ASAN=1
 elif [[ $MODE == "gcov" ]]; then
     export CC="clang"
     export CXX="clang++"
